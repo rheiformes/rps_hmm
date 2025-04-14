@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>RPS HMM Demo</title>
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: 40px auto; }
+    label, select, input { display: block; margin-top: 10px; width: 100%; }
+    button { margin-top: 15px; padding: 10px; }
+    #response, #guess-response { margin-top: 20px; white-space: pre-wrap; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <h2>Rock Paper Scissors: HMM Demo</h2>
+
+  <label>User ID:</label>
+  <input id="user_id" type="text" placeholder="just put smth unique eg rhea_123 bc i don't deal with collisions rn" />
+
+  <label>Round Number (1–3):</label>
+  <input id="round" type="number" min="1" max="3" />
+
+  <label>Your Move:</label>
+  <select id="move">
+    <option value="R">Rock</option>
+    <option value="P">Paper</option>
+    <option value="S">Scissors</option>
+  </select>
+
+  <button onclick="submitMove()">Submit Move</button>
+
+  <div id="response"></div>
+
+  <hr />
+
+  <h3>Guess the Hidden Strategy</h3>
+  <label>Your Guess:</label>
+  <select id="guess">
+    <option value="Favor Rock">Favor Rock</option>
+    <option value="Cycle">Cycle</option>
+    <option value="Random">Random</option>
+  </select>
+
+  <button onclick="submitGuess()">Submit Guess</button>
+
+  <div id="guess-response"></div>
+
+  <script>
+    const baseUrl = ""; // ngrok stuff goes ehre before but now via flask so no need
+
+    async function submitMove() {
+      const user_id = document.getElementById("user_id").value;
+      const round = parseInt(document.getElementById("round").value);
+      const move = document.getElementById("move").value;
+
+      const res = await fetch(`${baseUrl}/play`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id, round, move })
+      });
+
+      const data = await res.json();
+      document.getElementById("response").innerText =
+        res.ok ? `Opponent played: ${data.opponent_move}` : `Error: ${data.error}`;
+    }
+
+    async function submitGuess() {
+      const user_id = document.getElementById("user_id").value;
+      const guess = document.getElementById("guess").value;
+
+      const res = await fetch(`${baseUrl}/guess`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id, guess })
+      });
+
+      const data = await res.json();
+      document.getElementById("guess-response").innerText =
+        res.ok
+          ? `Your guess: ${guess}` //\nCorrect: ${data.correct}\nTrue strategy was: ${data.true_strategy}`
+          : `Error: ${data.error}`;
+    }
+  </script>
+</body>
+</html>

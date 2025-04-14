@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>HMM Analysis</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #f0f0f0; }
+    h2, h3 { margin-top: 40px; }
+    canvas { margin-top: 30px; }
+  </style>
+</head>
+<body>
+
+  <h2>HMM Analysis: RPS Opponent Behavior</h2>
+
+  <p><strong>Opponent Moves:</strong> {{ observations }}</p>
+  <p><strong>Viterbi Most Likely Strategy Sequence:</strong> {{ viterbi_path }}</p>
+  <p><strong>True Initial Strategy:</strong> {{ correct_strategy }}</p>
+
+  <h3>Belief Over Strategies After Each Round</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Round</th>
+        {% for state in states %}
+          <th>{{ state }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in belief_table %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          {% for state in states %}
+            <td>{{ "%.2f"|format(row[state]) }}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <canvas id="beliefChart" height="100"></canvas>
+
+  <h3>Forward Algorithm Math (Unnormalized Terms)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Round</th>
+        <th>State</th>
+        <th>Term (prev_belief × trans × emit)</th>
+        <th>Total (before normalization)</th>
+      </tr>
+    </thead>
+    <tbody>
+        {% for row in belief_details %}
+            {% set t = loop.index0 %}
+        {% for state in states %}
+          <tr>
+            <td>{{ t + 1 }}</td>
+            <td>{{ state }}</td>
+            <td>
+              {% for term in row[state] %}
+                ({{ "%.2f"|format(term[0]) }} × {{ "%.2f"|format(term[1]) }} × {{ "%.2f"|format(term[2]) }}) = {{ "%.4f"|format(term[3]) }}<br>
+              {% endfor %}
+            </td>
+            {% set total = namespace(value=0.0) %}
+            {% for term in row[state] %}
+            {% set total.value = total.value + term[3] %}
+            {% endfor %}
+            <td>{{ "%.4f"|format(total.value) }}</td>
+          </tr>
+        {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>User Guesses and Accuracy</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Guess</th>
+        <th>Correct?</th>
+        {% for r in range(1, 4) %}
+          <th>Round {{ r }} Move</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in user_table %}
+        <tr>
+          <td>{{ user.user }}</td>
+          <td>{{ user.guess or 'N/A' }}</td>
+          <td>{{ 'Y' if user.correct else 'X' }}</td>
+          {% for r in range(1, 4) %}
+            <td>
+              {% if r in user.moves %}
+                You: {{ user.moves[r].user }}, Opp: {{ user.moves[r].opponent }}<br>
+                {{ user.moves[r].result }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <canvas id="guessChart" height="100"></canvas>
+
+  <script>
+    
+    const strategyStates = JSON.parse('{{ states | tojson | safe }}'); // kinda questionable but ok
+    const beliefTable = JSON.parse('{{ belief_table | tojson | safe }}');
+    const guessHist = JSON.parse('{{ guess_hist | tojson | safe }}');
+    
+
+    const rounds = beliefTable.map((_, i) => "Round " + (i + 1));
+
+    const beliefDatasets = strategyStates.map((state, i) => ({
+      label: state,
+      data: beliefTable.map(row => row[state]),
+      fill: true
+    }));
+
+    new Chart(document.getElementById("beliefChart"), {
+      type: 'bar',
+      data: {
+        labels: rounds,
+        datasets: beliefDatasets
+      },
+      options: {
+        plugins: {
+          title: {
+            display: true,
+            text: 'Belief Distribution Over Time'
+          }
+        },
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true, max: 1 }
+        }
+      }
+    });
+
+    const guessLabels = Object.keys(guessHist);
+    const guessData = guessLabels.map(k => guessHist[k]);
+
+    new Chart(document.getElementById("guessChart"), {
+      type: 'bar',
+      data: {
+        labels: guessLabels,
+        datasets: [{
+          label: 'Number of Players Guessing',
+          data: guessData,
+          backgroundColor: ['#888', '#4e79a7', '#f28e2c']
+        }]
+      },
+      options: {
+        plugins: {
+          title: {
+            display: true,
+            text: 'User Strategy Guess Distribution'
+          }
+        },
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>
