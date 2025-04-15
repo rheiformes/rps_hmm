@@ -144,7 +144,8 @@ def hmm_analysis():
     path = {}
 
     for s in states:
-        V[0][s] = math.log(start_prob[s] + 1e-8) + math.log(emit_prob[s][observations[0]] + 1e-8)
+        V[0][s] = math.log(start_prob[s] + 1e-8) + math.log(emit_prob_at_t[t][s][observations[t]] + 1e-8)
+
         path[s] = [s]
 
     for t in range(1, len(observations)):
@@ -152,7 +153,10 @@ def hmm_analysis():
         newpath = {}
         for s in states:
             (prob, state) = max(
-                (V[t-1][s0] + math.log(trans_prob[s0][s] + 1e-8) + math.log(emit_prob[s][observations[t]] + 1e-8), s0)
+                (
+                    V[t-1][s0] + math.log(trans_prob[s0][s] + 1e-8) + math.log(emit_prob_at_t[t][s][observations[t]] + 1e-8),
+                    s0
+                )
                 for s0 in states
             )
             V[t][s] = prob
@@ -171,7 +175,14 @@ def hmm_analysis():
         row_details = {}
         total = 0.0
         for s in states:
-            terms = [(current[s0], trans_prob[s0][s], emit_prob[s][obs], current[s0] * trans_prob[s0][s] * emit_prob[s][obs]) for s0 in states]
+            # terms = [(current[s0], trans_prob[s0][s], emit_prob[s][obs], current[s0] * trans_prob[s0][s] * emit_prob[s][obs]) for s0 in states]
+            terms = [
+                (current[s0],
+                trans_prob[s0][s],
+                emit_prob_at_t[t][s][obs],
+                current[s0] * trans_prob[s0][s] * emit_prob_at_t[t][s][obs])
+                for s0 in states
+            ]
             prob = sum(term[3] for term in terms)
             new_belief[s] = prob
             row_details[s] = terms
