@@ -126,7 +126,19 @@ def hmm_analysis():
     states = strategy_list
     start_prob = {s: 1/len(states) for s in states}
     trans_prob = transition_matrix
-    emit_prob = strategies
+    # emit_prob = strategies
+    
+    emit_prob_at_t = [] # oops the emission matrix needs to be dynamic per round bc of cycle LOL pls work
+    for t in range(len(observations)):
+        emit_t = {}
+        for s in states:
+            if s == "Cycle":
+                move = cycle_order[t % 3]  # expected cycle move at this round
+                emit_t[s] = {m: 0.0 for m in "RPS"}
+                emit_t[s][move] = 1.0  # only 1 move possible in Cycle
+            else:
+                emit_t[s] = strategies[s]  # static emission for others
+        emit_prob_at_t.append(emit_t)
 
     V = [{}]
     path = {}
