@@ -44,37 +44,39 @@
 
   <canvas id="beliefChart" height="100"></canvas>
 
-  <h3>Forward Algorithm Math (Unnormalized Terms)</h3>
+  <h3>Forward Algorithm Math </h3>
   <table>
     <thead>
-      <tr>
-        <th>Round</th>
-        <th>State</th>
-        <th>Term (prev_belief × trans × emit)</th>
-        <th>Total (before normalization)</th>
-      </tr>
-    </thead>
-    <tbody>
+        <tr>
+          <th>Round</th>
+          <th>State</th>
+          <th>Term (prev_belief × trans × emit)</th>
+          <th>Total (before normalization)</th>
+          <th>Post-Normalized Belief</th>
+        </tr>
+      </thead>
+      <tbody>
         {% for row in belief_details %}
-            {% set t = loop.index0 %}
-        {% for state in states %}
-          <tr>
-            <td>{{ t + 1 }}</td>
-            <td>{{ state }}</td>
-            <td>
+          {% set t = loop.index0 %}
+          {% for state in states %}
+            <tr>
+              <td>{{ t + 1 }}</td>
+              <td>{{ state }}</td>
+              <td>
+                {% for term in row[state] %}
+                  ({{ "%.2f"|format(term[0]) }} × {{ "%.2f"|format(term[1]) }} × {{ "%.2f"|format(term[2]) }}) = {{ "%.4f"|format(term[3]) }}<br>
+                {% endfor %}
+              </td>
+              {% set total = namespace(value=0.0) %}
               {% for term in row[state] %}
-                ({{ "%.2f"|format(term[0]) }} × {{ "%.2f"|format(term[1]) }} × {{ "%.2f"|format(term[2]) }}) = {{ "%.4f"|format(term[3]) }}<br>
+                {% set total.value = total.value + term[3] %}
               {% endfor %}
-            </td>
-            {% set total = namespace(value=0.0) %}
-            {% for term in row[state] %}
-            {% set total.value = total.value + term[3] %}
-            {% endfor %}
-            <td>{{ "%.4f"|format(total.value) }}</td>
-          </tr>
+              <td>{{ "%.4f"|format(total.value) }}</td>
+              <td>{{ "%.4f"|format(belief_table[t][state]) }}</td>
+            </tr>
+          {% endfor %}
         {% endfor %}
-      {% endfor %}
-    </tbody>
+      </tbody>
   </table>
 
   <h3>User Guesses and Accuracy</h3>
